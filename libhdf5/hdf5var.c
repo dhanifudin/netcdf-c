@@ -855,8 +855,32 @@ int
 NC4_def_var_deflate(int ncid, int varid, int shuffle, int deflate,
                     int deflate_level)
 {
-    return nc_def_var_extra(ncid, varid, &shuffle, &deflate,
-                            &deflate_level, NULL, NULL, NULL, NULL, NULL, NULL);
+    int stat, vartype;
+    unsigned int level = (unsigned int)deflate_level;
+
+    if ((stat = nc_inq_vartype(ncid, varid, &vartype))) {
+        printf("Error getting variable type: %s\n", nc_strerror(stat));
+        return stat;
+    }
+
+    printf("Datatype: %d\n", vartype);
+
+    const unsigned int * params = { level, vartype };
+    /* Set shuffle first */
+    if (level < 9) {
+      if ((stat = nc_def_var_extra(ncid, varid, &shuffle, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)))
+          return stat;
+    }
+
+    /* Don't turn on deflate if deflate_level = 0. It's a valid zlib
+     * setting, but results in a write slowdown, and a file that is
+     * larger than the uncompressed file would be. So when
+     * deflate_level is 0, don't use compression. */
+    if (deflate && deflate_level)
+        if ((stat = nc_def_var_filter(ncid, varid, H5Z_FILTER_DEFLATE, 2, params)))
+            return stat;
+
+    return NC_NOERR;
 }
 
 /**

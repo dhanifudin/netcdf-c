@@ -314,7 +314,7 @@ there. */
 /**@}*/
 
 #define NC_MIN_DEFLATE_LEVEL 0 /**< Minimum deflate level. */
-#define NC_MAX_DEFLATE_LEVEL 10 /**< Maximum deflate level. */
+#define NC_MAX_DEFLATE_LEVEL 9 /**< Maximum deflate level. */
 
 /** The netcdf version 3 functions all return integer error status.
  * These are the possible values, in addition to certain values from

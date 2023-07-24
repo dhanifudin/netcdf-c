@@ -638,10 +638,6 @@ nc_def_var_extra(int ncid, int varid, int *shuffle, int *deflate,
     int d;
     int retval;
 
-    /* All or none of these will be provided. */
-    assert((deflate && deflate_level && shuffle) ||
-           (!deflate && !deflate_level && !shuffle));
-
     LOG((2, "%s: ncid 0x%x varid %d", __func__, ncid, varid));
 
     /* Find info for this file and group, and set pointer to each. */
@@ -658,51 +654,35 @@ nc_def_var_extra(int ncid, int varid, int *shuffle, int *deflate,
         return NC_ENOTVAR;
     assert(var && var->hdr.id == varid);
 
-    /* Can't turn on parallel and deflate/fletcher32/szip/shuffle (for now). */
+    /* Can't turn on parallel and deflate/fletcher32/szip/shuffle
+     * before HDF5 1.10.3. */
+#ifndef HDF5_SUPPORTS_PAR_FILTERS
     if (h5->parallel == NC_TRUE)
         if (deflate || fletcher32 || shuffle)
             return NC_EINVAL;
+#endif
 
     /* If the HDF5 dataset has already been created, then it is too
      * late to set all the extra stuff. */
     if (var->created)
         return NC_ELATEDEF;
 
-    /* Check compression options. */
-    if (deflate && !deflate_level)
-        return NC_EINVAL;
-
-    /* Valid deflate level? */
-    if (deflate)
-    {
-        if (*deflate)
-            if (*deflate_level < NC_MIN_DEFLATE_LEVEL ||
-                *deflate_level > NC_MAX_DEFLATE_LEVEL)
-                return NC_EINVAL;
-
-        /* For scalars, just ignore attempt to deflate. */
-        if (!var->ndims)
-            return NC_NOERR;
-
-        /* Well, if we couldn't find any errors, I guess we have to take
-         * the users settings. Darn! */
-        var->contiguous = NC_FALSE;
-        var->deflate = *deflate;
-        if (*deflate)
-            var->deflate_level = *deflate_level;
-        LOG((3, "%s: *deflate_level %d", __func__, *deflate_level));
+    /* Cannot set filters of any sort on scalars */
+    if(var->ndims == 0) {
+        if(shuffle && *shuffle)
+            return NC_EINVAL;
+        if(fletcher32 && *fletcher32)
+            return NC_EINVAL;
     }
 
     /* Shuffle filter? */
-    if (shuffle)
-    {
+    if (shuffle && *shuffle) {
         var->shuffle = *shuffle;
         var->contiguous = NC_FALSE;
     }
 
     /* Fletcher32 checksum error protection? */
-    if (fletcher32)
-    {
+    if (fletcher32 && *fletcher32) {
         var->fletcher32 = *fletcher32;
         var->contiguous = NC_FALSE;
     }
@@ -855,33 +835,79 @@ int
 NC4_def_var_deflate(int ncid, int varid, int shuffle, int deflate,
                     int deflate_level)
 {
-    int stat, vartype;
+    int stat;
     unsigned int level = (unsigned int)deflate_level;
 
-    if ((stat = nc_inq_vartype(ncid, varid, &vartype))) {
-        printf("Error getting variable type: %s\n", nc_strerror(stat));
-        return stat;
-    }
-
-    printf("Datatype: %d\n", vartype);
-
-    const unsigned int * params = { level, vartype };
     /* Set shuffle first */
-    if (level < 9) {
-      if ((stat = nc_def_var_extra(ncid, varid, &shuffle, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)))
-          return stat;
-    }
+    if ((stat = nc_def_var_extra(ncid, varid, &shuffle, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, NULL, NULL)))
+        return stat;
 
     /* Don't turn on deflate if deflate_level = 0. It's a valid zlib
      * setting, but results in a write slowdown, and a file that is
      * larger than the uncompressed file would be. So when
      * deflate_level is 0, don't use compression. */
     if (deflate && deflate_level)
-        if ((stat = nc_def_var_filter(ncid, varid, H5Z_FILTER_DEFLATE, 2, params)))
+        if ((stat = nc_def_var_filter(ncid, varid, H5Z_FILTER_DEFLATE, 1, &level)))
             return stat;
 
     return NC_NOERR;
 }
+// int
+// NC4_def_var_deflate(int ncid, int varid, int shuffle, int deflate,
+//                     int deflate_level)
+// {
+//     int DIMS = 5;
+//     int stat, vartype, ndims, dimids[DIMS];
+//     size_t dimlen;
+//     unsigned int level = (unsigned int)deflate_level;
+//
+//     // Get information about vartype
+//     if ((stat = nc_inq_vartype(ncid, varid, &vartype))) {
+//         printf("Error getting variable type: %s\n", nc_strerror(stat));
+//         return stat;
+//     }
+//
+//     printf("Datatype: %d\n", vartype);
+//
+//     if ((stat = nc_inq_varndims(ncid, varid, &ndims))) {
+//         printf("Error getting variable ndims: %s\n", nc_strerror(stat));
+//         return stat;
+//     }
+//     printf("Ndims: %d\n", ndims);
+//     
+//     if ((stat = nc_inq_vardimid(ncid, varid, dimids))) {
+//         printf("Error getting variable dimension ids: %s\n", nc_strerror(stat));
+//         return stat;
+//     }
+//     
+//     for(int i = 0; i < DIMS; i++) {
+//         if (i < ndims) {
+//         // Get the length of the dimension
+//         nc_inq_dimlen(ncid, dimids[i], &dimlen);
+//         printf("Dimension %d has length %lu\n", i, dimlen);
+//         } else {
+//             dimids[i] = 0;
+//         }
+//     }
+//
+//     const unsigned int * params = { level, vartype, ndims, dimids[4], dimids[3], dimids[2], dimids[1], dimids[0] };
+//     if ((stat = nc_def_var_extra(ncid, varid, &shuffle, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL))) {
+//         printf("Error when call the nc_def_var_extra\n");
+//         return stat;
+//     }
+//     printf("Success shuffle\n");
+//
+//     /* Don't turn on deflate if deflate_level = 0. It's a valid zlib
+//      * setting, but results in a write slowdown, and a file that is
+//      * larger than the uncompressed file would be. So when
+//      * deflate_level is 0, don't use compression. */
+//     if (deflate && deflate_level)
+//         if ((stat = nc_def_var_filter(ncid, varid, H5Z_FILTER_DEFLATE, 8, params)))
+//             return stat;
+//
+//     return NC_NOERR;
+// }
 
 /**
  * @internal Set checksum on a variable. This is called by

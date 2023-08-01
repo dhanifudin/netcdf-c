@@ -956,8 +956,9 @@ static int get_filter_info(hid_t propid, NC_VAR_INFO_T *var)
 
         case H5Z_FILTER_DEFLATE:
             var->deflate = NC_TRUE;
-            if (cd_nelems != CD_NELEMS_ZLIB ||
-                cd_values_zip[0] > NC_MAX_DEFLATE_LEVEL)
+            // if (cd_nelems != CD_NELEMS_ZLIB ||
+            //     cd_values_zip[0] > NC_MAX_DEFLATE_LEVEL)
+            if (cd_values_zip[0] > NC_MAX_DEFLATE_LEVEL)
                 return NC_EHDFERR;
             var->deflate_level = cd_values_zip[0];
             break;

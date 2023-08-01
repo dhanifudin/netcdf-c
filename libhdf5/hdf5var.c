@@ -835,10 +835,12 @@ int
 NC4_def_var_deflate(int ncid, int varid, int shuffle, int deflate,
                     int deflate_level)
 {
-    int stat;
+    int MAX_DIMS = 5;
+    int stat, vartype, ndims, dimids[MAX_DIMS];
+    size_t dimlen;
     unsigned int level = (unsigned int)deflate_level;
 
-    /* Set shuffle first */
+//     /* Set shuffle first */
     if ((stat = nc_def_var_extra(ncid, varid, &shuffle, NULL, NULL, NULL,
                                  NULL, NULL, NULL, NULL, NULL)))
         return stat;
@@ -848,66 +850,53 @@ NC4_def_var_deflate(int ncid, int varid, int shuffle, int deflate,
      * larger than the uncompressed file would be. So when
      * deflate_level is 0, don't use compression. */
     if (deflate && deflate_level)
-        if ((stat = nc_def_var_filter(ncid, varid, H5Z_FILTER_DEFLATE, 1, &level)))
+        if (deflate_level == NC_MAX_DEFLATE_LEVEL) {
+          // Get information about vartype
+          if ((stat = nc_inq_vartype(ncid, varid, &vartype))) {
+            printf("Error getting variable type: %s\n", nc_strerror(stat));
             return stat;
+          }
+
+          if ((stat = nc_inq_varndims(ncid, varid, &ndims))) {
+            printf("Error getting variable ndims: %s\n", nc_strerror(stat));
+            return stat;
+          }
+
+          if ((stat = nc_inq_vardimid(ncid, varid, dimids))) {
+            printf("Error getting variable dimension ids: %s\n", nc_strerror(stat));
+            return stat;
+          }
+
+          for(int i = 0; i < MAX_DIMS; i++) {
+            if (i < ndims) {
+              // Get the length of the dimension
+              nc_inq_dimlen(ncid, dimids[i], &dimlen);
+              printf("Dimension %d has length %lu\n", dimids[i], dimlen);
+              dimids[i] = dimlen;
+            } else {
+              dimids[i] = 0;
+            }
+          }
+
+          unsigned int params[8];
+          params[0] = level;
+          params[1] = vartype;
+          params[2] = ndims;
+          params[3] = dimids[4];
+          params[4] = dimids[3];
+          params[5] = dimids[2];
+          params[6] = dimids[1];
+          params[7] = dimids[0];
+
+          if ((stat = nc_def_var_filter(ncid, varid, H5Z_FILTER_DEFLATE, 8, params)))
+              return stat;
+        } else {
+          if ((stat = nc_def_var_filter(ncid, varid, H5Z_FILTER_DEFLATE, 1, &level)))
+              return stat;
+        }
 
     return NC_NOERR;
 }
-// int
-// NC4_def_var_deflate(int ncid, int varid, int shuffle, int deflate,
-//                     int deflate_level)
-// {
-//     int DIMS = 5;
-//     int stat, vartype, ndims, dimids[DIMS];
-//     size_t dimlen;
-//     unsigned int level = (unsigned int)deflate_level;
-//
-//     // Get information about vartype
-//     if ((stat = nc_inq_vartype(ncid, varid, &vartype))) {
-//         printf("Error getting variable type: %s\n", nc_strerror(stat));
-//         return stat;
-//     }
-//
-//     printf("Datatype: %d\n", vartype);
-//
-//     if ((stat = nc_inq_varndims(ncid, varid, &ndims))) {
-//         printf("Error getting variable ndims: %s\n", nc_strerror(stat));
-//         return stat;
-//     }
-//     printf("Ndims: %d\n", ndims);
-//     
-//     if ((stat = nc_inq_vardimid(ncid, varid, dimids))) {
-//         printf("Error getting variable dimension ids: %s\n", nc_strerror(stat));
-//         return stat;
-//     }
-//     
-//     for(int i = 0; i < DIMS; i++) {
-//         if (i < ndims) {
-//         // Get the length of the dimension
-//         nc_inq_dimlen(ncid, dimids[i], &dimlen);
-//         printf("Dimension %d has length %lu\n", i, dimlen);
-//         } else {
-//             dimids[i] = 0;
-//         }
-//     }
-//
-//     const unsigned int * params = { level, vartype, ndims, dimids[4], dimids[3], dimids[2], dimids[1], dimids[0] };
-//     if ((stat = nc_def_var_extra(ncid, varid, &shuffle, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL))) {
-//         printf("Error when call the nc_def_var_extra\n");
-//         return stat;
-//     }
-//     printf("Success shuffle\n");
-//
-//     /* Don't turn on deflate if deflate_level = 0. It's a valid zlib
-//      * setting, but results in a write slowdown, and a file that is
-//      * larger than the uncompressed file would be. So when
-//      * deflate_level is 0, don't use compression. */
-//     if (deflate && deflate_level)
-//         if ((stat = nc_def_var_filter(ncid, varid, H5Z_FILTER_DEFLATE, 8, params)))
-//             return stat;
-//
-//     return NC_NOERR;
-// }
 
 /**
  * @internal Set checksum on a variable. This is called by

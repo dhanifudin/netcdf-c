@@ -232,6 +232,7 @@ nc4_close_netcdf4_file(NC_FILE_INFO_T *h5, int abort, NC_memio *memio)
      * called by NC_create() when a file opening is aborted. */
     if (hdf5_info->hdfid > 0 && H5Fclose(hdf5_info->hdfid) < 0)
     {
+        printf("hdf5_info->hdfid: %d\n", hdf5_info->hdfid);
         dumpopenobjects(h5);
         return NC_EHDFERR;
     }
@@ -301,17 +302,27 @@ nc4_close_hdf5_file(NC_FILE_INFO_T *h5, int abort,  NC_memio *memio)
     /* Sync the file, unless we're aborting, or this is a read-only
      * file. */
     if (!h5->no_write && !abort)
-        if ((retval = sync_netcdf4_file(h5)))
+        if ((retval = sync_netcdf4_file(h5))) {
+            printf("Failed sync_netcdf4_file: %d\n", retval);
             return retval;
+        }
 
+    printf("Success sync_netcdf4_file: %d\n", retval);
     /* Close all open HDF5 objects within the file. */
-    if ((retval = nc4_rec_grp_HDF5_del(h5->root_grp)))
+    if ((retval = nc4_rec_grp_HDF5_del(h5->root_grp))) {
+        printf("Failed nc4_rec_grp_HDF5_del: %d\n", retval);
         return retval;
+    }
 
+    printf("Success nc4_rec_grp_HDF5_del: %d\n", retval);
     /* Release all internal lists and metadata associated with this
      * file. All HDF5 objects have already been released. */
-    if ((retval = nc4_close_netcdf4_file(h5, abort, memio)))
+    if ((retval = nc4_close_netcdf4_file(h5, abort, memio))) {
+        printf("Failed nc4_close_netcdf4_file: %d\n", retval);
         return retval;
+    }
+
+    printf("Success nc4_close_netcdf4_file: %d\n", retval);
 
     return NC_NOERR;
 }
@@ -427,8 +438,10 @@ NC4_redef(int ncid)
     LOG((1, "%s: ncid 0x%x", __func__, ncid));
 
     /* Find this file's metadata. */
-    if ((retval = nc4_find_grp_h5(ncid, NULL, &nc4_info)))
+    if ((retval = nc4_find_grp_h5(ncid, NULL, &nc4_info))) {
+        printf("Failed nc4_find_grp_h5 redef: %d\n", retval);
         return retval;
+    }
     assert(nc4_info);
 
     /* If we're already in define mode, return an error for classic
@@ -493,8 +506,10 @@ NC4_enddef(int ncid)
     LOG((1, "%s: ncid 0x%x", __func__, ncid));
 
     /* Find pointer to group and nc4_info. */
-    if ((retval = nc4_find_grp_h5(ncid, &grp, &nc4_info)))
+    if ((retval = nc4_find_grp_h5(ncid, &grp, &nc4_info))) {
+        printf("Failed nc4_find_grp_h5 NC4_enddef: %d\n", retval);
         return retval;
+    }
 
     /* Why is this here? Especially since it is not recursive so it
        only applies to the this grp */
@@ -528,8 +543,10 @@ NC4_sync(int ncid)
 
     LOG((2, "%s: ncid 0x%x", __func__, ncid));
 
-    if ((retval = nc4_find_grp_h5(ncid, NULL, &nc4_info)))
+    if ((retval = nc4_find_grp_h5(ncid, NULL, &nc4_info))) {
+        printf("Failed nc4_find_grp_h5 NC4_sync: %d\n", retval);
         return retval;
+    }
     assert(nc4_info);
 
     /* If we're in define mode, we can't sync. */
@@ -569,8 +586,10 @@ NC4_abort(int ncid)
     LOG((2, "%s: ncid 0x%x", __func__, ncid));
 
     /* Find metadata for this file. */
-    if ((retval = nc4_find_nc_grp_h5(ncid, &nc, NULL, &nc4_info)))
+    if ((retval = nc4_find_nc_grp_h5(ncid, &nc, NULL, &nc4_info))) {
+        printf("Failed nc4_find_nc_grp_h5 NC4_abort: %d\n", retval);
         return retval;
+    }
     assert(nc4_info);
 
     /* If we're in define mode, but not redefing the file, delete it. */
@@ -582,8 +601,10 @@ NC4_abort(int ncid)
 
     /* Free any resources the netcdf-4 library has for this file's
      * metadata. */
-    if ((retval = nc4_close_hdf5_file(nc4_info, 1, NULL)))
+    if ((retval = nc4_close_hdf5_file(nc4_info, 1, NULL))) {
+        printf("Failed nc4_close_hdf5_file NC4_abort: %d\n", retval);
         return retval;
+    }
 
     /* Delete the file, if we should. */
     if (delete_file)
@@ -614,8 +635,10 @@ NC4_close(int ncid, void* params)
     LOG((1, "%s: ncid 0x%x", __func__, ncid));
 
     /* Find our metadata for this file. */
-    if ((retval = nc4_find_grp_h5(ncid, &grp, &h5)))
+    if ((retval = nc4_find_grp_h5(ncid, &grp, &h5))) {
+        printf("Failed nc4_find_grp_h5 NC4_close: %d\n", retval);
         return retval;
+    }
 
     assert(h5 && grp);
 
@@ -630,8 +653,10 @@ NC4_close(int ncid, void* params)
     }
 
     /* Call the nc4 close. */
-    if ((retval = nc4_close_hdf5_file(grp->nc4_info, 0, memio)))
+    if ((retval = nc4_close_hdf5_file(grp->nc4_info, 0, memio))) {
+        printf("Failed nc4_close_hdf5_file NC4_close: %d\n", retval);
         return retval;
+    }
 
     return NC_NOERR;
 }

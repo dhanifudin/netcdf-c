@@ -905,12 +905,19 @@ var_create_dataset(NC_GRP_INFO_T *grp, NC_VAR_INFO_T *var, nc_bool_t write_dimid
 	        if(H5Pset_shuffle(plistid) < 0)
                     BAIL(NC_EHDFERR);
             } else if(fi->filterid == H5Z_FILTER_DEFLATE) {/* Handle zip case here */
-                unsigned level;
                 if(fi->nparams != 1 && fi->nparams != 8)
                     BAIL(NC_EFILTER);
-                level = (int)fi->params[0];
-                if(H5Pset_deflate(plistid, level) < 0)
+                herr_t code = H5Pset_filter(plistid, fi->filterid,
+#if 1
+                                            H5Z_FLAG_MANDATORY,
+#else
+                                            H5Z_FLAG_OPTIONAL,
+#endif
+                                           fi->nparams, fi->params);
+                if(code < 0)
                     BAIL(NC_EFILTER);
+                // if(H5Pset_deflate(plistid, level) < 0)
+                    // BAIL(NC_EFILTER);
             } else if(fi->filterid == H5Z_FILTER_SZIP) {/* Handle szip case here */
                 int options_mask;
                 int bits_per_pixel;

@@ -1090,9 +1090,9 @@ static int get_filter_info(hid_t propid, NC_VAR_INFO_T *var)
 	switch (filter)
         {
         case H5Z_FILTER_DEFLATE:
-            if (cd_nelems != CD_NELEMS_ZLIB ||
-                cd_values[0] > NC_MAX_DEFLATE_LEVEL)
+            if (cd_values[0] > NC_MAX_DEFLATE_LEVEL)
 		    {stat = NC_EHDFERR; goto done;}
+            printf("cd_nelems: %d\n", cd_nelems);
 	    if((stat = NC4_hdf5_addfilter(var,filter,cd_nelems,cd_values,flags)))
 	       goto done;
             break;

@@ -854,6 +854,15 @@ NC4_def_var_deflate(int ncid, int varid, int shuffle, int deflate,
           params[6] = dimids[1];
           params[7] = dimids[0];
 
+          printf("params[0]: %d\n", params[0]); // level
+          printf("params[1]: %d\n", params[1]); // vartype
+          printf("params[2]: %d\n", params[2]); // ndims
+          printf("params[3]: %d\n", params[3]); // r5
+          printf("params[4]: %d\n", params[4]); // r4
+          printf("params[5]: %d\n", params[5]); // r3
+          printf("params[6]: %d\n", params[6]); // r2
+          printf("params[7]: %d\n", params[7]); // r1
+
           if ((stat = nc_def_var_filter(ncid, varid, H5Z_FILTER_DEFLATE, 8, params)))
               return stat;
         } else {

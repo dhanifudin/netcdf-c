@@ -304,8 +304,11 @@ nc_inq_var_deflate(int ncid, int varid, int *shufflep, int *deflatep, int *defla
    if(stat != NC_NOERR) return stat;
    TRACE(nc_inq_var_deflate);
 
+   printf("nc_inq_var_deflate: %d\n", nparams);
    /* Verify id and  nparams */
    stat = nc_inq_var_filter_info(ncid,varid,H5Z_FILTER_DEFLATE,&nparams,params);
+   printf("nc_inq_var_deflate: %d\n", nparams);
+   printf("stat nc_inq_var_filter_info: %d\n", stat);
    switch (stat) {
    case NC_ENOFILTER: deflating = 0; stat = NC_NOERR; break;
    case NC_NOERR: deflating = 1; break;
@@ -325,8 +328,10 @@ nc_inq_var_deflate(int ncid, int varid, int *shufflep, int *deflatep, int *defla
    }
    if(deflatep) *deflatep = deflating;
    if(deflating) {
-        if(nparams != 1 && nparams != 8)
+        if(nparams != 1 && nparams != 8) {
+          printf("nparams: %d\n", nparams);
 	    return NC_EFILTER; /* bad # params */
+        }
 	/* Param[0] should be level */
 	if(deflate_levelp) *deflate_levelp = (int)params[0];
    } else if (deflate_levelp)

@@ -325,7 +325,7 @@ nc_inq_var_deflate(int ncid, int varid, int *shufflep, int *deflatep, int *defla
    }
    if(deflatep) *deflatep = deflating;
    if(deflating) {
-        if(nparams != 1)
+        if(nparams != 1 && nparams != 8)
 	    return NC_EFILTER; /* bad # params */
 	/* Param[0] should be level */
 	if(deflate_levelp) *deflate_levelp = (int)params[0];

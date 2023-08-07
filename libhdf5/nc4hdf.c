@@ -906,7 +906,7 @@ var_create_dataset(NC_GRP_INFO_T *grp, NC_VAR_INFO_T *var, nc_bool_t write_dimid
                     BAIL(NC_EHDFERR);
             } else if(fi->filterid == H5Z_FILTER_DEFLATE) {/* Handle zip case here */
                 unsigned level;
-                if(fi->nparams != 1)
+                if(fi->nparams != 1 || fi->nparams != 8)
                     BAIL(NC_EFILTER);
                 level = (int)fi->params[0];
                 if(H5Pset_deflate(plistid, level) < 0)

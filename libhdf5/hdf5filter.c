@@ -433,8 +433,8 @@ NC4_hdf5_def_var_filter(int ncid, int varid, unsigned int id, size_t nparams,
 	if(oldspec == NULL) {
             if(id == H5Z_FILTER_DEFLATE) {
 		int level;
-                if(nparams != 1)
-                    {stat = THROW(NC_EFILTER); goto done;}/* incorrect no. of parameters */
+                if(nparams != 1 && nparams != 8)
+                    {printf("Error Efilter: %d\n", nparams); stat = THROW(NC_EFILTER); goto done;}/* incorrect no. of parameters */
    	        level = (int)params[0];
                 if (level < NC_MIN_DEFLATE_LEVEL || level > NC_MAX_DEFLATE_LEVEL)
                     {stat = THROW(NC_EINVAL); goto done;}

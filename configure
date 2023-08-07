@@ -14,6 +14,9 @@
 ## -------------------- ##
 ## M4sh Initialization. ##
 ## -------------------- ##
+export CPPFLAGS=-I/usr/local/hdf5/1.10.3/GNU/731/include
+export LDFLAGS=-L/usr/local/hdf5/1.10.3/GNU/731/lib
+export LD_LIBRARY_PATH=/usr/local/hdf5/1.10.3/GNU/731/lib
 
 # Be more Bourne compatible
 DUALCASE=1; export DUALCASE # for MKS sh
